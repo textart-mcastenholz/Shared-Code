@@ -4,5 +4,9 @@
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^7.0.2",
     "next": "^15.3.1"
+  },
+  "devDependencies": {
+    "@types/mongodb": "^4.0.6",
+    "@types/node": "^22.15.2"
   }
 }
