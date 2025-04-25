@@ -84,3 +84,18 @@ export function createDebugUtil(
 
 	return result;
 }
+
+// Standard-Debug-Konfiguration für allgemeine Verwendung
+const standardFeatureNames = {
+	1: "Auth",
+	2: "Profile",
+	3: "MongoDB",
+	4: "Email",
+	// Weitere allgemeine Features...
+};
+
+// Standard-Debug-Instanz erstellen
+const standardDebug = createDebugUtil("shared_debug_level", standardFeatureNames);
+
+// Standard-Debug-Funktionen exportieren, insbesondere für serverDebug
+export const { isDebugEnabled, debug, serverDebug, debugAuth, debugProfile, debugMongoDB, debugEmail } = standardDebug;
