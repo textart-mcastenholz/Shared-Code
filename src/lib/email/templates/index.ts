@@ -6,6 +6,7 @@ import * as loginTemplate from "./magic-link-login";
 import * as registerTemplate from "./magic-link-register";
 import * as newsletterSubscriptionTemplate from "./newsletter-subscription";
 import * as newsletterUnsubscriptionTemplate from "./newsletter-unsubscription";
+import * as adminLoginTemplate from "./admin-login";
 
 export * from "./base";
 // Exportiere nur die Typen und Interfaces, nicht die Funktionen mit gleichem Namen
@@ -13,6 +14,7 @@ export type { MagicLinkLoginVariables } from "./magic-link-login";
 export type { MagicLinkRegisterVariables } from "./magic-link-register";
 export type { NewsletterSubscriptionVariables } from "./newsletter-subscription";
 export type { NewsletterUnsubscriptionVariables } from "./newsletter-unsubscription";
+export type { AdminLoginVariables } from "./admin-login";
 
 // Map mit allen verfügbaren Templates und ihrer Generierungsfunktionen
 export const templates: Record<
@@ -37,6 +39,10 @@ export const templates: Record<
 	"newsletter-unsubscription": {
 		generate: newsletterUnsubscriptionTemplate.generateNewsletterUnsubscriptionTemplate,
 		name: newsletterUnsubscriptionTemplate.templateName,
+	},
+	"admin-login": {
+		generate: adminLoginTemplate.generateAdminLoginTemplate,
+		name: adminLoginTemplate.templateName,
 	},
 };
 
