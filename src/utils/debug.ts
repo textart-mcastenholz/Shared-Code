@@ -65,12 +65,17 @@ export function createDebugUtil(
 	isDebugEnabled: (featureLevel: number) => boolean;
 	debug: (featureLevel: number, ...args: any[]) => void;
 	serverDebug: (featureLevel: number, ...args: any[]) => void;
-	[key: string]: any;
+	[key: string]: any; // Index-Signatur hinzufügen
 } {
 	const util = new DebugUtil(localStorageKey, featureNames);
 
 	// Basis-Funktionen
-	const result = {
+	const result: {
+		isDebugEnabled: (featureLevel: number) => boolean;
+		debug: (featureLevel: number, ...args: any[]) => void;
+		serverDebug: (featureLevel: number, ...args: any[]) => void;
+		[key: string]: any; // Index-Signatur hinzufügen
+	} = {
 		isDebugEnabled: util.isDebugEnabled.bind(util),
 		debug: util.debug.bind(util),
 		serverDebug: util.serverDebug.bind(util),
