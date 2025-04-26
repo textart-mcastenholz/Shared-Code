@@ -20,28 +20,28 @@ export type { AdminLoginVariables } from "./admin-login";
 export const templates: Record<
 	string,
 	{
-		generate: (variables: any) => { html: string; text: string; subject: string };
+		generate: (variables: TemplateVariables) => { html: string; text: string; subject: string };
 		name: string;
 	}
 > = {
 	"magic-link-login": {
-		generate: loginTemplate.generateMagicLinkLoginTemplate,
+		generate: (variables: TemplateVariables) => loginTemplate.generateMagicLinkLoginTemplate(variables as any),
 		name: loginTemplate.templateName,
 	},
 	"magic-link-register": {
-		generate: registerTemplate.generateMagicLinkRegisterTemplate,
+		generate: (variables: TemplateVariables) => registerTemplate.generateMagicLinkRegisterTemplate(variables as any),
 		name: registerTemplate.templateName,
 	},
 	"newsletter-subscription": {
-		generate: newsletterSubscriptionTemplate.generateNewsletterSubscriptionTemplate,
+		generate: (variables: TemplateVariables) => newsletterSubscriptionTemplate.generateNewsletterSubscriptionTemplate(variables as any),
 		name: newsletterSubscriptionTemplate.templateName,
 	},
 	"newsletter-unsubscription": {
-		generate: newsletterUnsubscriptionTemplate.generateNewsletterUnsubscriptionTemplate,
+		generate: (variables: TemplateVariables) => newsletterUnsubscriptionTemplate.generateNewsletterUnsubscriptionTemplate(variables as any),
 		name: newsletterUnsubscriptionTemplate.templateName,
 	},
 	"admin-login": {
-		generate: adminLoginTemplate.generateAdminLoginTemplate,
+		generate: (variables: TemplateVariables) => adminLoginTemplate.generateAdminLoginTemplate(variables as any),
 		name: adminLoginTemplate.templateName,
 	},
 };
