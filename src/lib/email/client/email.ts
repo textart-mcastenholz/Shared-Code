@@ -57,6 +57,20 @@ export function getBaseUrl(): string {
 	return `https://${process.env.VERCEL_URL}`;
 }
 
+// Funktion zur Überprüfung, ob wir in lokaler Entwicklungsumgebung laufen
+export function isLocalDevelopment(): boolean {
+	// Überprüft, ob wir uns in einer Entwicklungsumgebung befinden und
+	// die Umgebung nicht Vercel ist
+	return process.env.NODE_ENV !== "production" && !process.env.VERCEL_URL && (process.env.IS_LOCAL === "true" || process.env.NEXT_PUBLIC_IS_LOCAL === "true" || !process.env.BREVO_API_KEY);
+}
+
+// Standard-Timeout für Magic Links in Minuten
+export const MAGIC_LINK_EXPIRY = {
+	login: 15, // 15 Minuten für Login
+	verification: 1440, // 24 Stunden für Verifizierung
+	passwordReset: 60, // 60 Minuten für Passwort-Reset
+};
+
 // Abstrakte E-Mail-Client-Klasse
 export abstract class BaseEmailClient {
 	protected senderEmail: string;
