@@ -57,11 +57,22 @@ export function getBaseUrl(): string {
 	return `https://${process.env.VERCEL_URL}`;
 }
 
-// Funktion zur Überprüfung, ob wir in lokaler Entwicklungsumgebung laufen
+// Verbesserte Funktion zur Überprüfung, ob wir in lokaler Entwicklungsumgebung laufen
 export function isLocalDevelopment(): boolean {
-	// Überprüft, ob wir uns in einer Entwicklungsumgebung befinden und
-	// die Umgebung nicht Vercel ist
-	return process.env.NODE_ENV !== "production" && !process.env.VERCEL_URL && (process.env.IS_LOCAL === "true" || process.env.NEXT_PUBLIC_IS_LOCAL === "true" || !process.env.BREVO_API_KEY);
+	// Explizit auf Umgebungsvariablen prüfen
+	if (process.env.FORCE_LOCAL_DEV === "true") {
+		return true;
+	}
+
+	// Prüfen auf "localhost" in der URL oder Port-Nummern
+	const baseUrl = process.env.NEXTAUTH_URL || process.env.DOMAIN_URL || "";
+	if (baseUrl.includes("localhost") || baseUrl.match(/:\d{4}/)) {
+		// Port zwischen 1000-9999 (typisch für lokale Entwicklung)
+		return true;
+	}
+
+	// Überprüfen, ob wir uns in einer Entwicklungsumgebung befinden
+	return process.env.NODE_ENV !== "production" && !process.env.VERCEL_URL;
 }
 
 // Standard-Timeout für Magic Links in Minuten
@@ -233,25 +244,79 @@ export class NodemailerEmailClient extends BaseEmailClient {
 	}
 }
 
-// Erstellt den passenden E-Mail-Client basierend auf der Umgebung
+// Verbesserter E-Mail-Client mit direktem SMTP-Support
 export function createEmailClient(options?: { forceNodemailer?: boolean; smtpConfig?: any; senderEmail?: string; senderName?: string }): BaseEmailClient {
 	const senderEmail = options?.senderEmail || process.env.EMAIL_FROM || "no-reply@example.com";
 	const senderName = options?.senderName || process.env.SITE_NAME || "Website";
 	const brevoApiKey = process.env.BREVO_API_KEY;
 
-	// Verwende Nodemailer in Entwicklungsumgebungen oder wenn explizit angefordert
-	if (options?.forceNodemailer || (process.env.NODE_ENV !== "production" && !brevoApiKey)) {
-		serverDebug(EMAIL_DEBUG_LEVEL, "Verwende Nodemailer für E-Mail-Versand");
-		return new NodemailerEmailClient(senderEmail, senderName, options?.smtpConfig);
+	// Immer Nodemailer für lokale Entwicklung verwenden
+	if (isLocalDevelopment()) {
+		serverDebug(EMAIL_DEBUG_LEVEL, "Lokale Entwicklungsumgebung erkannt - nutze Nodemailer");
+
+		// Prüfe, ob SMTP-Konfiguration vorhanden ist
+		if (process.env.EMAIL_SERVER_HOST && process.env.EMAIL_SERVER_USER) {
+			// SMTP-Konfiguration extrahieren
+			const smtpConfig = {
+				host: process.env.EMAIL_SERVER_HOST,
+				port: parseInt(process.env.EMAIL_SERVER_PORT || "587"),
+				secure: process.env.EMAIL_SERVER_PORT === "465",
+				auth: {
+					user: process.env.EMAIL_SERVER_USER,
+					pass: process.env.EMAIL_SERVER_PASSWORD,
+				},
+				// Für lokale Entwicklung TLS-Fehler ignorieren
+				tls: {
+					rejectUnauthorized: !isLocalDevelopment(),
+				},
+			};
+
+			serverDebug(EMAIL_DEBUG_LEVEL, "Verwende konfiguriertes SMTP für E-Mail-Versand", {
+				host: smtpConfig.host,
+				port: smtpConfig.port,
+			});
+
+			return new NodemailerEmailClient(
+				senderEmail.replace(/^".*" <(.+)>$/, "$1"), // E-Mail aus "Name <email>" Format extrahieren
+				senderEmail.match(/^"(.*)" <.+>$/)?.[1] || senderName, // Name aus Format extrahieren oder senderName verwenden
+				smtpConfig
+			);
+		}
+
+		// Fallback für lokale Entwicklung ohne SMTP
+		serverDebug(EMAIL_DEBUG_LEVEL, "Keine SMTP-Konfiguration gefunden, verwende Dummy-Mailer");
+		return new NodemailerEmailClient(senderEmail, senderName, {
+			host: "localhost",
+			port: 1025,
+			ignoreTLS: true,
+		});
 	}
 
-	// Ansonsten Brevo verwenden, wenn API-Key vorhanden
+	// In Produktionsumgebung Brevo oder SMTP je nach verfügbarer Konfiguration verwenden
 	if (brevoApiKey) {
 		serverDebug(EMAIL_DEBUG_LEVEL, "Verwende Brevo API für E-Mail-Versand");
 		return new BrevoEmailClient(brevoApiKey, senderEmail, senderName);
+	} else if (process.env.EMAIL_SERVER_HOST) {
+		// SMTP-Konfiguration für Produktion
+		const smtpConfig = {
+			host: process.env.EMAIL_SERVER_HOST,
+			port: parseInt(process.env.EMAIL_SERVER_PORT || "587"),
+			secure: process.env.EMAIL_SERVER_PORT === "465",
+			auth: {
+				user: process.env.EMAIL_SERVER_USER,
+				pass: process.env.EMAIL_SERVER_PASSWORD,
+			},
+		};
+
+		serverDebug(EMAIL_DEBUG_LEVEL, "Verwende SMTP für E-Mail-Versand", {
+			host: smtpConfig.host,
+			port: smtpConfig.port,
+		});
+
+		return new NodemailerEmailClient(senderEmail.replace(/^".*" <(.+)>$/, "$1"), senderEmail.match(/^"(.*)" <.+>$/)?.[1] || senderName, smtpConfig);
 	}
 
-	throw new Error("Keine E-Mail-Konfiguration gefunden: Entweder BREVO_API_KEY oder ein SMTP-Server muss konfiguriert sein.");
+	throw new Error("Keine E-Mail-Konfiguration gefunden: Weder BREVO_API_KEY noch SMTP-Server sind konfiguriert.");
 }
 
 // Standardmäßiger E-Mail-Client

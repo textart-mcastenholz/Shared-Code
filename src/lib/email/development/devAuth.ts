@@ -23,7 +23,7 @@ export function createDevLoginUrl(options: DevLoginOptions): string {
 	const devToken = `DEV_TOKEN-${options.email}-${options.isAdmin ? "1" : "0"}-${options.userId || "auto"}`;
 
 	// Basis-URL für die Weiterleitung
-	const baseUrl = process.env.DOMAIN_URL || "http://localhost:3000";
+	const baseUrl = process.env.DOMAIN_URL || process.env.NEXTAUTH_URL || "http://localhost:3002";
 
 	// Standardmäßig zur normalen Verify-Route weiterleiten
 	const redirectPath = options.redirectPath || "/api/auth/verify";
@@ -33,7 +33,6 @@ export function createDevLoginUrl(options: DevLoginOptions): string {
 		token: devToken,
 		type: "login",
 		dev: "true",
-		email: options.email,
 	});
 
 	// Wenn ein Name angegeben wurde, diesen hinzufügen
