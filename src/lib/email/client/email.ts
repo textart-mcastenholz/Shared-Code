@@ -14,6 +14,7 @@ export interface EmailData {
 	subject: string;
 	html: string;
 	text: string;
+	from?: { email: string; name?: string } | string; // Hinzugefügt: Optional benutzerdefinierter Absender
 	cc?: string | string[];
 	bcc?: string | string[];
 	replyTo?: string;
@@ -104,10 +105,22 @@ export class BrevoEmailClient extends BaseEmailClient {
 			// Brevo API Client initialisieren
 			const apiInstance = this.initBrevoApi();
 
+			// Sender-Objekt bestimmen (benutzerdefinierten Absender oder Standard verwenden)
+			let sender: { email: string; name?: string } = { email: this.senderEmail, name: this.senderName };
+
+			if (emailData.from) {
+				if (typeof emailData.from === "string") {
+					sender = { email: emailData.from };
+				} else {
+					sender = emailData.from;
+				}
+				serverDebug(EMAIL_DEBUG_LEVEL, `Verwende benutzerdefinierten Absender: ${JSON.stringify(sender)}`);
+			}
+
 			// E-Mail erstellen für Brevo
 			const sendSmtpEmail: SendSmtpEmail = {
 				to: formatEmailRecipients(emailData.to),
-				sender: { email: this.senderEmail, name: this.senderName },
+				sender: sender,
 				subject: emailData.subject,
 				htmlContent: emailData.html,
 				textContent: emailData.text,
@@ -165,9 +178,21 @@ export class NodemailerEmailClient extends BaseEmailClient {
 		try {
 			serverDebug(EMAIL_DEBUG_LEVEL, `Sende E-Mail via Nodemailer an: ${emailData.to}`);
 
+			// From-Feld bestimmen (benutzerdefinierten Absender oder Standard verwenden)
+			let from = `"${this.senderName}" <${this.senderEmail}>`;
+
+			if (emailData.from) {
+				if (typeof emailData.from === "string") {
+					from = emailData.from;
+				} else {
+					from = emailData.from.name ? `"${emailData.from.name}" <${emailData.from.email}>` : emailData.from.email;
+				}
+				serverDebug(EMAIL_DEBUG_LEVEL, `Verwende benutzerdefinierten Absender: ${from}`);
+			}
+
 			// E-Mail-Daten für Nodemailer formatieren
 			const mailOptions = {
-				from: `"${this.senderName}" <${this.senderEmail}>`,
+				from: from,
 				to: Array.isArray(emailData.to) ? emailData.to.join(",") : emailData.to,
 				subject: emailData.subject,
 				text: emailData.text,
