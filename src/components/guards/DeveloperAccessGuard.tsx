@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { parseCookies, setCookie } from "nookies"; // Nookies für Cookie-Management
 
 interface DeveloperAccessGuardProps {
 	children: React.ReactNode;
@@ -12,11 +13,7 @@ interface DeveloperAccessGuardProps {
 /**
  * Guard-Komponente für Developer-Access
  * Prüft ob der Benutzer Zugriff auf die Entwicklungsversion haben soll
- *
- * @param children Komponenten, die geschützt werden sollen
- * @param loadingComponent Komponente, die während der Prüfung angezeigt wird
- * @param publicPaths Array mit Pfaden, die immer zugänglich sind (ohne Prüfung)
- * @param customRedirectPath Pfad, zu dem bei fehlendem Zugriff umgeleitet wird
+ * Verwendet Cookies statt sessionStorage für bessere SSR-Kompatibilität
  */
 export const DeveloperAccessGuard = ({ children, loadingComponent, publicPaths = [], customRedirectPath = "/nothing-found" }: DeveloperAccessGuardProps) => {
 	const searchParams = useSearchParams();
@@ -25,12 +22,15 @@ export const DeveloperAccessGuard = ({ children, loadingComponent, publicPaths =
 	const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
 	useEffect(() => {
+		// Cookies statt sessionStorage verwenden
+		const cookies = parseCookies();
+
 		// Prüfe, ob es sich um localhost handelt - dann immer zulassen
 		const isLocalhost = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
-		// Prüfe URL-Parameter oder Session-Storage
+		// Prüfe URL-Parameter oder Cookies
 		const onlyForUs = searchParams.get("only4us") === "1";
-		const hasStoredAccess = sessionStorage.getItem("devAccessGranted") === "true";
+		const hasStoredAccess = cookies.devAccessGranted === "true";
 
 		// Standard-Pfade, die immer zugänglich sein sollten
 		const defaultPublicPaths = ["/api/", "/not-found", "/nothing-found", "/auth/login"];
@@ -48,17 +48,23 @@ export const DeveloperAccessGuard = ({ children, loadingComponent, publicPaths =
 
 		if (isLocalhost) {
 			// Auf Localhost immer Zugriff gewähren
-			sessionStorage.setItem("devAccessGranted", "true");
+			setCookie(null, "devAccessGranted", "true", {
+				maxAge: 30 * 24 * 60 * 60, // 30 Tage
+				path: "/",
+			});
 			setIsAuthorized(true);
 		} else if (isPublicPath) {
 			// Öffentliche Pfade sind immer zugänglich
 			setIsAuthorized(true);
 		} else if (onlyForUs) {
 			// Parameter gefunden, setze Zugriffsberechtigung
-			sessionStorage.setItem("devAccessGranted", "true");
+			setCookie(null, "devAccessGranted", "true", {
+				maxAge: 30 * 24 * 60 * 60, // 30 Tage
+				path: "/",
+			});
 			setIsAuthorized(true);
 		} else if (hasStoredAccess) {
-			// Zugriff bereits in Session Storage
+			// Zugriff bereits in Cookie
 			setIsAuthorized(true);
 		} else {
 			// Kein Zugriff, umleiten
